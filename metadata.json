@@ -1,0 +1,6 @@
+{
+  "name": "Multi Cloner",
+  "description": "Dual Space and multi-account infinite app cloner with virtual root environment, process inspector, and privacy sandbox.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

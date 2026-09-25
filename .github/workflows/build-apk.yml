@@ -1,0 +1,104 @@
+name: Build & Release Debug APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Prepare Gradle Wrapper
+        run: |
+          if [ ! -f "gradlew" ]; then
+            echo "Generating Gradle wrapper..."
+            gradle wrapper || gradle wrapper --gradle-version 9.3.1 || true
+          fi
+          chmod +x gradlew || true
+
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build Debug APK
+        run: |
+          if [ -f "./gradlew" ]; then
+            ./gradlew assembleDebug --stacktrace --no-daemon
+          else
+            gradle assembleDebug --stacktrace --no-daemon
+          fi
+
+      - name: Locate Debug APK
+        id: find_apk
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: APK not found!"
+            exit 1
+          fi
+          echo "Found APK: $APK_PATH"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          cp "$APK_PATH" MultiCloner-debug.apk
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MultiCloner-Debug-APK
+          path: MultiCloner-debug.apk
+          retention-days: 30
+
+      - name: Create GitHub Release & Upload APK
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v1.0.${{ github.run_number }}"
+          name: "Multi Cloner v1.0.${{ github.run_number }}"
+          body: |
+            ### 🚀 Multi Cloner Debug APK Build
+            - **Commit**: `${{ github.sha }}`
+            - **Build**: #${{ github.run_number }}
+            - **Features**:
+              - Unlimited App Cloning (Space 1, 2, 3, ... infinite clones)
+              - Virtual Space isolation & data sandboxing
+              - Virtual Root environment & Process List inspector for GameGuardian / root tools
+              - Device ID / IMEI / MAC spoofer & Privacy Guard
+              - RAM cleaner & speed boost
+            
+            📥 **Download APK:** Click below under Assets to download `MultiCloner-debug.apk`.
+          files: MultiCloner-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
