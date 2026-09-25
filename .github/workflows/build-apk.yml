@@ -33,14 +33,20 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            platform-tools
+            platforms;android-36
+            build-tools;36.0.0
+          accept-android-sdk-licenses: true
 
       - name: Prepare Gradle Wrapper
         run: |
           if [ ! -f "gradlew" ]; then
             echo "Generating Gradle wrapper..."
-            gradle wrapper || gradle wrapper --gradle-version 9.3.1 || true
+            gradle wrapper --gradle-version 9.3.1
           fi
-          chmod +x gradlew || true
+          chmod +x gradlew
 
       - name: Cache Gradle Dependencies
         uses: actions/cache@v4
@@ -95,7 +101,7 @@ jobs:
               - Virtual Root environment & Process List inspector for GameGuardian / root tools
               - Device ID / IMEI / MAC spoofer & Privacy Guard
               - RAM cleaner & speed boost
-            
+
             📥 **Download APK:** Click below under Assets to download `MultiCloner-debug.apk`.
           files: MultiCloner-debug.apk
           draft: false
